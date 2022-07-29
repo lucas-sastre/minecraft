@@ -1,0 +1,50 @@
+version: "3.3"
+
+services:
+  mc:
+    restart: unless-stopped
+    container_name: "minecraft"
+    image: itzg/minecraft-server
+    ports:
+      - 25565:25565
+    environment:
+      EULA: "TRUE"
+      OPS: "162"
+      SERVER_NAME: "leon-lucas"
+      MOTD: "Con el cuchillo entre los dientes"
+      DIFFICULTY: "easy"
+      MEMORY: 2G
+      WORLD: "/worlds/world"
+    tty: true
+    stdin_open: true
+    volumes:
+      - /root/docker/minecraft/minecraft-data:/data
+      - /root/docker/minecraft/saves-to-import:/worlds:ro
+    
+  map:
+    container_name: map
+    image: nginx:latest
+    networks:
+      - proxy
+    restart: unless-stopped
+
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.map.entrypoints=http"
+      - "traefik.http.routers.map.rule=Host(`map.selfhost.ar`)"
+      - "traefik.http.middlewares.map-https-redirect.redirectscheme.scheme=https"
+      - "traefik.http.routers.map.middlewares=map-https-redirect"
+      - "traefik.http.routers.map-secure.entrypoints=https"
+      - "traefik.http.routers.map-secure.rule=Host(`map.selfhost.ar`)"
+      - "traefik.http.routers.map-secure.tls.certresolver=cloudflare"
+      - "traefik.http.routers.map-secure.tls=true"
+      - "traefik.http.routers.map-secure.service=map"
+      - "traefik.http.services.map.loadbalancer.server.port=80"
+      - "traefik.docker.network=proxy"
+    volumes:
+      - /root/docker/map:/usr/share/nginx/html:ro
+
+
+networks:
+  proxy:
+    external: true
